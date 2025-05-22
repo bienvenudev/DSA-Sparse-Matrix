@@ -32,7 +32,7 @@ class SparseMatrix {
 
       return matrix;
     } catch (error) {
-      throw new Error(`Error reading file: ${error.message}`);
+      throw new Error(`Failed to read matrix file: ${filePath}\nError details: ${error.message}`);
     }
   }
 
@@ -59,9 +59,13 @@ class SparseMatrix {
     }
   }
 
+  getDimensionString() {
+    return `${this.rows}x${this.cols}`;
+  }
+
   add(other) {
     if (this.rows !== other.rows || this.cols !== other.cols) {
-      throw new Error("Matrix dimensions must match for addition");
+      throw new Error(`Matrix dimensions must match for addition. Matrix 1 is ${this.rows}x${this.cols}, Matrix 2 is ${other.rows}x${other.cols}`);
     }
 
     const result = new SparseMatrix(this.rows, this.cols);
@@ -83,7 +87,7 @@ class SparseMatrix {
 
   subtract(other) {
     if (this.rows !== other.rows || this.cols !== other.cols) {
-      throw new Error("Matrix dimensions must match for subtraction");
+      throw new Error(`Matrix dimensions must match for subtraction. Matrix 1 is ${this.rows}x${this.cols}, Matrix 2 is ${other.rows}x${other.cols}`);
     }
 
     const result = new SparseMatrix(this.rows, this.cols);
@@ -105,7 +109,7 @@ class SparseMatrix {
 
   multiply(other) {
     if (this.cols !== other.rows) {
-      throw new Error("Invalid dimensions for multiplication");
+      throw new Error(`Invalid dimensions for multiplication. Matrix 1 is ${this.rows}x${this.cols}, Matrix 2 is ${other.rows}x${other.cols}. The number of columns in first matrix (${this.cols}) must equal the number of rows in second matrix (${other.rows})`);
     }
 
     const result = new SparseMatrix(this.rows, other.cols);
@@ -137,9 +141,10 @@ class SparseMatrix {
 }
 
 async function main() {
-  if (process.argv.length < 6) {
-    console.log(
-      "Usage: node main.js <operation> <matrix1_file> <matrix2_file> <output_file>"
+  if (process.argv.length < 6) {    console.log(
+      "Usage: node main.js <operation> <matrix1_file> <matrix2_file> <output_file>\n" +
+      "Operations available: add, subtract, multiply\n" +
+      "Example: node main.js add matrix1.txt matrix2.txt result.txt"
     );
     process.exit(1);
   }
@@ -148,9 +153,12 @@ async function main() {
     const operation = process.argv[2];
     const matrix1 = await SparseMatrix.fromFile(process.argv[3]);
     const matrix2 = await SparseMatrix.fromFile(process.argv[4]);
-    const outputFile = process.argv[5];
+    const outputFile = process.argv[5];    let result;
+    // Display the operation with matrix dimensions
+    const dim1 = matrix1.getDimensionString();
+    const dim2 = matrix2.getDimensionString();
+    console.log(`Performing operation: ${dim1} ${operation} ${dim2}`);
 
-    let result;
     switch (operation) {
       case "add":
         result = matrix1.add(matrix2);
@@ -162,12 +170,12 @@ async function main() {
         result = matrix1.multiply(matrix2);
         break;
       default:
-        throw new Error("Invalid operation. Use: add, subtract, or multiply");
+        throw new Error(`Invalid operation "${operation}". Valid operations are: add, subtract, or multiply`);
     }
 
     // Write result to output file
     await fs.promises.writeFile(outputFile, result.toString());
-    console.log(`Result written to ${outputFile}`);
+    console.log(`Operation "${operation}" completed successfully. Result written to: ${outputFile}`);
   } catch (error) {
     console.error("Error:", error.message);
     process.exit(1);
